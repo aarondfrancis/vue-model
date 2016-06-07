@@ -1,0 +1,28 @@
+{
+  "name": "vue-model",
+  "version": "0.0.3",
+  "description": "A Javascript plugin for the excellent Vue.js framework that gives you the ability to transform your plain data into rich models with built-in and customizable HTTP actions.",
+  "main": "src/VueModel.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aarondfrancis/vue-model.git"
+  },
+  "keywords": [
+    "vuejs",
+    "vue",
+    "model",
+    "restful"
+  ],
+  "author": "Aaron Francis <aarondfrancis@gmail.com> (http://aaronfrancis.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/aarondfrancis/vue-model/issues"
+  },
+  "homepage": "https://github.com/aarondfrancis/vue-model#readme",
+  "dependencies": {
+    "lodash": "^4.13.1"
+  }
+}
