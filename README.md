@@ -9,6 +9,10 @@ See more at [aaronfrancis.com](http://aaronfrancis.com).
 
 ## Installation
  
+```
+> npm install --save vue-model
+```
+ 
 ```javascript
 Vue.use(require('vue-model'));
 ```
