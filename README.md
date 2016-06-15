@@ -470,7 +470,7 @@ Vue.models.register('video', {
 
 If the server returns 
 
-```json
+```javascript
 {
     completed: 1
 }
@@ -501,6 +501,50 @@ That lets us create toggle buttons very easily, all in HTML.
 ### Preventing Simultaneous Actions
 
 By default, vue-model will prevent another action from being initiated while another action is running. If you want to turn this behavior off, you can pass `false` in for the `preventSimultaneousActions` option.
+
+## HTTP Headers
+
+Often times you'll want to add or modify the HTTP headers that go out with your request, especially if you're using the `Authorization` header, for example.
+
+We've made it easy to define headers in a couple of different ways. The first is to define headers that get applied to every action. This can be either a callback or just a plain object:
+
+```javascript
+// Apply to every action, using a callback
+Vue.use(require('vue-model'), {
+    headers: function(action) {
+        return {
+            'Authorization': getTokenFromStorage()
+        };
+    }
+});
+
+// Apply to every action, but using a plain object
+Vue.use(require('vue-model'), {
+    headers: {
+        'foo': 'bar' 
+    }
+});
+```
+
+> You can see more about passing options in the Customizing Your Models section.
+
+Alternatively, if you want to have action-specific headers, you can do that too using either a callback or an object.
+
+```javascript
+Vue.models.register('video', {
+    actions: {
+        complete: {
+            method: 'POST',
+            route: '/{id}/complete',
+            headers: {
+                'foo': 'baz'
+            }
+        }
+    }
+});
+```
+
+> **Note:** Action-specific headers will overwrite global headers that have the same key. 
 
 ## Busy Indicators
 
@@ -717,8 +761,12 @@ Vue.use(require('vue-model'), {
 See more in the __Customizing Your Models__ section.
 
 ## Errors
+
 ### Is it a Validation Error Response?
+@TODO
+
 ### Transform Errors
+@TODO
 
 ## Customizing Your Models
 
@@ -832,6 +880,11 @@ This is the `ModelDefaults.js` file that vue-model ships with and contains all t
     // a callback function.
     emitter: 'emit',
 
+    // HTTP Headers that get set on each action.
+    // This can be a plain object or a callback
+    // that returns a plain object.
+    headers: {},
+    
     // Prevent an action from being invoked while
     // another action is still running
     preventSimultaneousActions: true,
@@ -880,6 +933,9 @@ This is the `ModelDefaults.js` file that vue-model ships with and contains all t
         // Load validation errors into the 
         // model if the server returns them
         validation: true,
+        
+        // Action specific headers 
+        headers: {},
         
         // Perform before the action. Return
         // false to cancel the action
