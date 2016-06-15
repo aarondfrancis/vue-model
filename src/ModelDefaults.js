@@ -17,6 +17,11 @@ module.exports = {
     // Function by which the event gets emitted
     emitter: 'emit',
 
+    // HTTP Headers that get set on each action.
+    // This can be a plain object or a callback
+    // that returns a plain object.
+    headers: {},
+
     // Prevent an action from being invoked while
     // another action is still running
     preventSimultaneousActions: true,
@@ -60,6 +65,7 @@ module.exports = {
     actionDefaults: {
         apply: false,
         validation: true,
+        headers: {},
         before: function() {
             //
         },

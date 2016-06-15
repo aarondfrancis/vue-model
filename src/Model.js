@@ -20,9 +20,12 @@ var Model = function (data, settings) {
         // reject actions that are set to false
         .pickBy()
 
-        // Extend action with defaults
+        // Extend action with defaults and append
+        // the "name" key for later convenience
         .forOwn(function(action, key) {
-            self.settings.actions[key] = _.defaultsDeep(action, self.settings.actionDefaults);
+            self.settings.actions[key] = _.defaultsDeep(action, self.settings.actionDefaults, {
+                name: key
+            });
         });
 
     // Set the API property and make it reactive
@@ -159,7 +162,10 @@ Model.prototype.act = function(name) {
     });
 
     var route = self.getRoute(action);
+    var headers = self.getHeaders(action);
+
     var promise = $.ajax(route, {
+        headers: headers,
         type: action.method,
         data: sent,
     });
@@ -219,6 +225,23 @@ Model.prototype.act = function(name) {
         });
 
     return promise;
+};
+
+Model.prototype.getHeaders = function(action) {
+    var actionHeaders = action.headers;
+    var globalHeaders = this.settings.headers;
+
+    if (_.isFunction(actionHeaders)) {
+        actionHeaders = actionHeaders.call(this, action);
+    }
+
+    if (_.isFunction(globalHeaders)) {
+        globalHeaders = globalHeaders.call(this, action);
+    }
+
+    actionHeaders = _.defaultsDeep(_.toPlainObject(actionHeaders), _.toPlainObject(globalHeaders));
+
+    return _.pickBy(actionHeaders);
 };
 
 Model.prototype.getRoute = function(action) {
