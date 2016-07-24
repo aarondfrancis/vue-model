@@ -162,8 +162,9 @@ Model.prototype.act = function(name) {
     });
 
     var
-        route = self.getRoute(action),
-        headers = self.getHeaders(action),
+        headers = self.getSettingsProperty('headers', action),
+        params = self.getSettingsProperty('params', action),
+        route = self.getRoute(action) + self.getParams(params),
         contentType = self.getContentType(action);
 
     if (contentType != null && contentType.indexOf('application/json') > -1) {
@@ -234,26 +235,36 @@ Model.prototype.act = function(name) {
     return promise;
 };
 
-Model.prototype.getHeaders = function(action) {
-    var actionHeaders = action.headers;
-    var globalHeaders = this.settings.headers;
+Model.prototype.getSettingsProperty = function(name, action) {
+    var actionProperty = action[name];
+    var globalProperty = this.settings[name];
 
-    if (_.isFunction(actionHeaders)) {
-        actionHeaders = actionHeaders.call(this, action);
+    if (_.isFunction(actionProperty)) {
+        actionProperty = actionProperty.call(this, action);
     }
 
-    if (_.isFunction(globalHeaders)) {
-        globalHeaders = globalHeaders.call(this, action);
+    if (_.isFunction(globalProperty)) {
+        globalProperty = globalProperty.call(this, action);
     }
 
-    actionHeaders = _.defaultsDeep(_.toPlainObject(actionHeaders), _.toPlainObject(globalHeaders));
+    actionProperty = _.defaultsDeep(_.toPlainObject(actionProperty), _.toPlainObject(globalProperty));
 
-    return _.pickBy(actionHeaders);
+    return _.pickBy(actionProperty);
 };
 
 Model.prototype.getRoute = function(action) {
     var baseRoute = action.baseRoute || this.settings.baseRoute;
     return this.interpolate(baseRoute + action.route);
+};
+
+Model.prototype.getParams = function (params) {
+    if (_.isString(params)) {
+        return '?' + params;
+    } else if (_.isObject(params)) {
+        return '?' + $.param(params);
+    } else {
+        return '';
+    }
 };
 
 Model.prototype.getContentType = function (action) {

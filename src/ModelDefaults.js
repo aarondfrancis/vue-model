@@ -11,12 +11,17 @@ module.exports = {
     // Prepended to each of the action routes
     baseRoute: '',
 
+    // appended as a query parameters to each the url
+    // type: string, object or function
+    params: {},
+
     // Prepended to each event that gets emitted
     eventPrefix: '',
 
     // Function by which the event gets emitted
     emitter: 'emit',
 
+    // contentType of the data being sent to the server
     contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
 
     // HTTP Headers that get set on each action.

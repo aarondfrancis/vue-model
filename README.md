@@ -860,8 +860,12 @@ This is the `ModelDefaults.js` file that vue-model ships with and contains all t
     // used for related models, etc.
     excludeKeys: [],
 
-    // Prepended to each of the action routes
-    baseRoute: '',
+    // appended as a query parameters to each the url
+    // type: string, object or function
+    params: {},
+
+    // contentType of the data being sent to the server
+    contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
 
     // Prepended to each event that gets emitted. If 
     // you leave this blank when your register your 
