@@ -210,7 +210,7 @@ new Vue({
  el: 'body',
  
  models: [{
-    type: 'customer'
+    type: 'customer',
     dataKey: 'newCustomer'
  }],
  
@@ -830,7 +830,7 @@ new Vue({
     el: 'body',
     
     models: [{
-        type: 'customer'
+        type: 'customer',
         dataKey: 'newCustomer',
         options: {
             emitter: function() {}
