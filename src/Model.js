@@ -161,13 +161,20 @@ Model.prototype.act = function(name) {
         sending: sent
     });
 
-    var route = self.getRoute(action);
-    var headers = self.getHeaders(action);
+    var
+        route = self.getRoute(action),
+        headers = self.getHeaders(action),
+        contentType = self.getContentType(action);
+
+    if (contentType != null && contentType.indexOf('application/json') > -1) {
+        sent = JSON.stringify(sent);
+    }
 
     var promise = $.ajax(route, {
         headers: headers,
         type: action.method,
         data: sent,
+        contentType: contentType
     });
 
     // If we are to apply the result from the server,
@@ -247,7 +254,11 @@ Model.prototype.getHeaders = function(action) {
 Model.prototype.getRoute = function(action) {
     var baseRoute = action.baseRoute || this.settings.baseRoute;
     return this.interpolate(baseRoute + action.route);
-}
+};
+
+Model.prototype.getContentType = function (action) {
+    return action.contentType || this.settings.contentType;
+};
 
 Model.prototype.getAction = function(name) {
     var action = this.settings.actions[name];

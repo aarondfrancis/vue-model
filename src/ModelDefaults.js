@@ -17,6 +17,8 @@ module.exports = {
     // Function by which the event gets emitted
     emitter: 'emit',
 
+    contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+
     // HTTP Headers that get set on each action.
     // This can be a plain object or a callback
     // that returns a plain object.
@@ -66,6 +68,7 @@ module.exports = {
         apply: false,
         validation: true,
         headers: {},
+        // contentType:
         before: function() {
             //
         },
