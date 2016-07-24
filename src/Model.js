@@ -55,8 +55,8 @@ Model.prototype.buildApi = function() {
             api[key + 'InProgress'] = false;
 
             // Expose each action in the API
-            api[key] = function () {
-                return self.act(key);
+            api[key] = function (actSettings) {
+                return self.act(key, actSettings);
             }
         })(key);
     });
@@ -120,12 +120,15 @@ Model.prototype.buildApi = function() {
 /**
  * Perform an HTTP action
  * @param name
+ * @ param actSettings override the settins on function call
  * @returns Promise
  */
-Model.prototype.act = function(name) {
+Model.prototype.act = function(name, actSettings) {
     var self = this;
     var api = self.api;
     var action = self.getAction(name);
+
+    if (! _.isObject(actSettings)) actSettings = {};
 
     if (self.settings.preventSimultaneousActions && api.inProgress) {
         self.emit('prevented', {
@@ -162,10 +165,10 @@ Model.prototype.act = function(name) {
     });
 
     var
-        headers = self.getSettingsProperty('headers', action),
-        params = self.getSettingsProperty('params', action),
-        route = self.getRoute(action) + self.getParams(params),
-        contentType = self.getContentType(action);
+        headers = self.getSettingsProperty('headers', action, actSettings),
+        params = self.getSettingsProperty('params', action, actSettings),
+        route = self.getRoute(action, actSettings) + self.getParams(params),
+        contentType = self.getContentType(action, actSettings);
 
     if (contentType != null && contentType.indexOf('application/json') > -1) {
         sent = JSON.stringify(sent);
@@ -235,26 +238,29 @@ Model.prototype.act = function(name) {
     return promise;
 };
 
-Model.prototype.getSettingsProperty = function(name, action) {
+Model.prototype.getSettingsProperty = function(name, action, actSettings) {
+    var actProperty = actSettings[name];
     var actionProperty = action[name];
     var globalProperty = this.settings[name];
 
-    if (_.isFunction(actionProperty)) {
-        actionProperty = actionProperty.call(this, action);
-    }
+    if (_.isFunction(actProperty)) actProperty = actProperty.call(this, action);
+    if (_.isFunction(actionProperty)) actionProperty = actionProperty.call(this, action);
+    if (_.isFunction(globalProperty)) globalProperty = globalProperty.call(this, action);
 
-    if (_.isFunction(globalProperty)) {
-        globalProperty = globalProperty.call(this, action);
-    }
+    actProperty = _.defaultsDeep(
+        _.toPlainObject(actProperty),
+        _.toPlainObject(actionProperty),
+        _.toPlainObject(globalProperty)
+    );
 
-    actionProperty = _.defaultsDeep(_.toPlainObject(actionProperty), _.toPlainObject(globalProperty));
-
-    return _.pickBy(actionProperty);
+    return _.pickBy(actProperty);
 };
 
-Model.prototype.getRoute = function(action) {
-    var baseRoute = action.baseRoute || this.settings.baseRoute;
-    return this.interpolate(baseRoute + action.route);
+Model.prototype.getRoute = function(action, actSettings) {
+    var
+        baseRoute = actSettings.baseRoute || action.baseRoute || this.settings.baseRoute,
+        route = actSettings.route || action.route;
+    return this.interpolate(baseRoute + route);
 };
 
 Model.prototype.getParams = function (params) {
@@ -267,8 +273,8 @@ Model.prototype.getParams = function (params) {
     }
 };
 
-Model.prototype.getContentType = function (action) {
-    return action.contentType || this.settings.contentType;
+Model.prototype.getContentType = function (action, actSettings) {
+    return actSettings.contentType || action.contentType || this.settings.contentType;
 };
 
 Model.prototype.getAction = function(name) {

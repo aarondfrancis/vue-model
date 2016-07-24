@@ -776,11 +776,11 @@ Vue-model has been created to be as configurable as possible, but still remain v
 
 Since there are so many ways to customize your models, let's talk about order of importance.
 
-#### 4. Least Important: Vue-model Defaults.
+#### 5. Least Important: Vue-model Defaults.
  
 Vue-model ships with a `ModelDefaults.js` file that defines all the possible defaults. This is the _least_ important, but provides a solid base to get you started. (See below for a copy of the `ModelDefaults.js`)
   
-#### 3. Somewhat Important: User Defaults
+#### 4. Somewhat Important: User Defaults
 
 If you have specific defaults that you'd like to apply to __every__ model you ever create, you can pass in your own defaults that override the vue-model defaults. You do that when you call `Vue.use`.
  
@@ -798,7 +798,7 @@ Your new `apiKey` will override the vue-model default `apiKey` so that every mod
 video._.complete();
 ```
 
-#### 2. Moderately Important: Model Defaults
+#### 3. Moderately Important: Model Defaults
 
 When you register a model using `Vue.models.register`, you have the ability to pass in `options` as a third parameter. If, for example, you don't want a certain model to have the `destroy` action, you can disable it for a single model:
  
@@ -812,7 +812,7 @@ Vue.models.register('customer', {
 
 With this configuration, every time you call `this.$model('customer', {})`, there will be no `destroy` action, because you declared it `false` upon registration.
 
-#### 1. Most Important: Instance Options
+#### 2. Most Important: Instance Options
 
 The highest priority for options are _instance_ specific options. Instance specific options can override every other option. Instance specific options are (optionally) declared when you create a model. For example, if you'd like to change the event emitter for a _single instance_, you can:
 
@@ -845,6 +845,15 @@ new Vue({
 });
 ```
 
+#### 1. Override on model's function call
+
+When calling an action you can override the settings by passing an object as first parameter.
+
+```javascript
+
+model.$.list({headers: {limit: 20}, params: {page: 1}})
+
+````
 
 ### Available Options
 
