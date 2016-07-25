@@ -80,15 +80,15 @@ module.exports = {
         // error response is a validation error.
         // 422 is the correct status code, so if
         // you use Laravel, no need to update this.
-        isValidationError: function(xhr) {
-            return xhr.status === 422;
+        isValidationError: function(response) {
+            return response.status === 422;
         },
 
         // The error object should have the field names
         // as the keys and an array of errors as the
         // values. Laravel does this automatically.
-        transformResponse: function(xhr) {
-            return xhr.responseJSON;
+        transformResponse: function(response) {
+            return response.data;
         }
     }
 };

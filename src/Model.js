@@ -137,13 +137,13 @@ Model.prototype.act = function(name) {
             action: action
         });
         
-        return $.when();
+        return Vue.Promise.resolve();
     }
 
     if (_.isFunction(action.before)) {
         if(action.before.apply(self) === false) {
             self.emit(name + '.canceled');
-            return $.when();
+            return Vue.Promise.resolve();
         }
     }
 
@@ -164,53 +164,75 @@ Model.prototype.act = function(name) {
     var route = self.getRoute(action);
     var headers = self.getHeaders(action);
 
-    var promise = $.ajax(route, {
+    var promise = Vue.http.get(route, {
         headers: headers,
-        type: action.method,
-        data: sent,
+        method: action.method,
+        body: sent,
     });
 
     // If we are to apply the result from the server,
     // chain onto the promise to do so
     if (action.apply) {
-        promise.done(function(data) {
+        promise.then(function(response) {
+            const { data } = response;
             api.apply(data);
         });
     }
 
     if (action.validation) {
         promise
-            .always(function() {
-                api.errors.clear();
-            })
+            .then(
+                function() {
+                    api.errors.clear();
+                },
+                function(response){
+                    api.errors.clear();
+                    if (!self.settings.validationErrors.isValidationError(response)) {
+                        return;
+                    }
 
-            .fail(function(xhr){
-                if (!self.settings.validationErrors.isValidationError(xhr)) {
-                    return;
+                    var errors = self.settings.validationErrors.transformResponse(response);
+                    api.errors.set(errors);
                 }
-
-                var errors = self.settings.validationErrors.transformResponse(xhr);
-                api.errors.set(errors);
-            });
+            );
     }
 
     promise
-        .done(function(data) {
-            self.emit(name + '.success', {
+        .then(
+            function(response) {
+                const { data } = response;
+                self.emit(name + '.success', {
+                    sent: sent,
+                    received: data
+                });
+                api.editing = false;
+            },
+            function(response) {
+                const { data } = response;
+                self.emit(name + '.error', {
+                    sent: sent,
+                    received: data
+                });
+            }
+        )
+
+        // Always
+    promise
+        .then(function (response) {
+            const { data } = response;
+            self.emit(name + '.complete', {
                 sent: sent,
                 received: data
             });
-            api.editing = false;
-        })
 
-        .fail(function(xhr) {
-            self.emit(name + '.error', {
-                sent: sent,
-                received: xhr
-            });
-        })
+            if(_.isFunction(action.after)) {
+                action.after.apply(self, [data]);
+            }
 
-        .always(function (data) {
+            api.inProgress = false;
+            api[name + 'InProgress'] = false;
+        }, function (response) {
+            const { data } = response;
             self.emit(name + '.complete', {
                 sent: sent,
                 received: data
