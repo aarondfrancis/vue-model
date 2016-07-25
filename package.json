@@ -23,6 +23,13 @@
   },
   "homepage": "https://github.com/aarondfrancis/vue-model#readme",
   "dependencies": {
-    "lodash": "^4.13.1"
+    "lodash": "^4.13.1",
+    "vue": "^1.0.26",
+    "vue-resource": "^0.9.3"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "laravel-elixir": "^6.0.0-0",
+    "laravel-elixir-browserify-official": "^0.1.3"
   }
 }
