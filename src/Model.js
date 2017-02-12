@@ -17,12 +17,12 @@ var Model = function (data, settings) {
 
     self.settings.excludeKeys.push(self.settings.apiKey);
     self.settings.actions = _(self.settings.actions)
-        // reject actions that are set to false
+    // reject actions that are set to false
         .pickBy()
 
         // Extend action with defaults and append
         // the "name" key for later convenience
-        .forOwn(function(action, key) {
+        .forOwn(function (action, key) {
             self.settings.actions[key] = _.defaultsDeep(action, self.settings.actionDefaults, {
                 name: key
             });
@@ -40,7 +40,7 @@ var Model = function (data, settings) {
  * Make the public api that we attach to the model data
  * @returns Object
  */
-Model.prototype.buildApi = function() {
+Model.prototype.buildApi = function () {
     var self = this;
     var cache;
 
@@ -49,14 +49,14 @@ Model.prototype.buildApi = function() {
         inProgress: false
     };
 
-    _.forOwn(self.settings.actions, function(action, key){
-        (function(key){
+    _.forOwn(self.settings.actions, function (action, key) {
+        (function (key) {
             // Set loading indicators for each action
             api[key + 'InProgress'] = false;
 
             // Expose each action in the API
-            api[key] = function () {
-                return self.act(key);
+            api[key] = function (actSettings) {
+                return self.act(key, actSettings);
             }
         })(key);
     });
@@ -66,14 +66,14 @@ Model.prototype.buildApi = function() {
      * of the Model extras
      * @returns Object
      */
-    api.copy = function() {
+    api.copy = function () {
         return _.omit(self.data, self.settings.excludeKeys);
     };
 
     /**
      * Toggles a flag and copies the data to the cache
      */
-    api.edit = function() {
+    api.edit = function () {
         api.editing = true;
         cache = api.copy();
     };
@@ -90,27 +90,27 @@ Model.prototype.buildApi = function() {
      * Update the data object using Vue.set
      * @param newData
      */
-    api.apply = function(newData) {
+    api.apply = function (newData) {
         _(newData)
-            // Exclude our API key and any others
+        // Exclude our API key and any others
             .omit(self.settings.excludeKeys)
 
             // Skip any values that haven't changed
-            .omitBy(function(value, key) {
+            .omitBy(function (value, key) {
                 return value === self.data[key];
             })
 
             // Update the changed keys
-            .forOwn(function(value, key){
+            .forOwn(function (value, key) {
                 Vue.set(self.data, key, value);
             });
     };
-    
+
     api.errors = new ModelErrors();
 
     api.data = new DataPipeline();
     api.data[self.settings.apiKey] = api;
-    api.data['forAction'] = function(name) {
+    api.data['forAction'] = function (name) {
         return self.getDataForAction(name)
     };
 
@@ -120,12 +120,15 @@ Model.prototype.buildApi = function() {
 /**
  * Perform an HTTP action
  * @param name
+ * @ param actSettings override the settins on function call
  * @returns Promise
  */
-Model.prototype.act = function(name) {
+Model.prototype.act = function (name, actSettings) {
     var self = this;
     var api = self.api;
     var action = self.getAction(name);
+
+    if (!_.isObject(actSettings)) actSettings = {};
 
     if (self.settings.preventSimultaneousActions && api.inProgress) {
         self.emit('prevented', {
@@ -136,14 +139,14 @@ Model.prototype.act = function(name) {
         self.emit(name + '.prevented', {
             action: action
         });
-        
-        return $.when();
+
+        return Vue.Promise.resolve();
     }
 
     if (_.isFunction(action.before)) {
-        if(action.before.apply(self) === false) {
+        if (action.before.apply(self) === false) {
             self.emit(name + '.canceled');
-            return $.when();
+            return Vue.Promise.resolve();
         }
     }
 
@@ -161,65 +164,79 @@ Model.prototype.act = function(name) {
         sending: sent
     });
 
-    var route = self.getRoute(action);
-    var headers = self.getHeaders(action);
+    self.dispatch('model.before', {sending: sent});
 
-    var promise = $.ajax(route, {
+    var
+        headers     = self.getSettingsProperty('headers', action, actSettings),
+        params      = self.getSettingsProperty('params', action, actSettings),
+        route       = self.getRoute(action, actSettings),
+        contentType = self.getContentType(action, actSettings);
+
+    if (contentType != null && contentType.indexOf('application/json') > -1
+    ) {
+        sent = JSON.stringify(sent);
+    }
+
+    var promise = Vue.http({
+        url: route,
         headers: headers,
-        type: action.method,
-        data: sent,
+        method: action.method,
+        params: params,
+        body: sent,
     });
 
     // If we are to apply the result from the server,
     // chain onto the promise to do so
     if (action.apply) {
-        promise.done(function(data) {
+        promise.then(function (response) {
+            const data = response.data;
             api.apply(data);
         });
     }
 
     if (action.validation) {
         promise
-            .always(function() {
-                api.errors.clear();
-            })
-
-            .fail(function(xhr){
-                if (!self.settings.validationErrors.isValidationError(xhr)) {
-                    return;
-                }
-
-                var errors = self.settings.validationErrors.transformResponse(xhr);
-                api.errors.set(errors);
-            });
+            .then(
+                function () {
+                    api.errors.clear();
+                },
+                function (response) {
+                    api.errors.clear();
+                    if (!self.settings.validationErrors.isValidationError(response)) {
+                        return;
+                    }
+                    var errors = self.settings.validationErrors.transformResponse(response);
+                    api.errors.set(errors);
+                });
     }
 
     promise
-        .done(function(data) {
-            self.emit(name + '.success', {
-                sent: sent,
-                received: data
-            });
-            api.editing = false;
-        })
-
-        .fail(function(xhr) {
-            self.emit(name + '.error', {
-                sent: sent,
-                received: xhr
-            });
-        })
-
-        .always(function (data) {
-            self.emit(name + '.complete', {
-                sent: sent,
-                received: data
-            });
-
-            if(_.isFunction(action.after)) {
-                action.after.apply(self, [data]);
+        .then(
+            function (response) {
+                const data = response.data;
+                self.emit(name + '.success', {sent: sent, received: data});
+                api.editing = false;
+            },
+            function (response) {
+                const data = response.data;
+                self.emit(name + '.error', {sent: sent, received: data});
             }
+        );
 
+    // Always
+    promise
+        .then(function (response) {
+            const data = response.data;
+            self.emit(name + '.complete', {sent: sent, received: data});
+            self.dispatch('model.complete', {sent: sent, received: data});
+
+            if (_.isFunction(action.after)) { action.after.apply(self, [data]); }
+            api.inProgress = false;
+            api[name + 'InProgress'] = false;
+        }, function (response) {
+            const data = response.data;
+            self.emit(name + '.complete', {sent: sent, received: data});
+            if (_.isFunction(action.after)) { action.after.apply(self, [data]); }
             api.inProgress = false;
             api[name + 'InProgress'] = false;
         });
@@ -227,29 +244,46 @@ Model.prototype.act = function(name) {
     return promise;
 };
 
-Model.prototype.getHeaders = function(action) {
-    var actionHeaders = action.headers;
-    var globalHeaders = this.settings.headers;
+Model.prototype.getSettingsProperty = function (name, action, actSettings) {
+    var actProperty = actSettings[name];
+    var actionProperty = action[name];
+    var globalProperty = this.settings[name];
 
-    if (_.isFunction(actionHeaders)) {
-        actionHeaders = actionHeaders.call(this, action);
-    }
+    if (_.isFunction(actProperty)) actProperty = actProperty.call(this, action);
+    if (_.isFunction(actionProperty)) actionProperty = actionProperty.call(this, action);
+    if (_.isFunction(globalProperty)) globalProperty = globalProperty.call(this, action);
 
-    if (_.isFunction(globalHeaders)) {
-        globalHeaders = globalHeaders.call(this, action);
-    }
+    actProperty = _.defaultsDeep(
+        _.toPlainObject(actProperty),
+        _.toPlainObject(actionProperty),
+        _.toPlainObject(globalProperty)
+    );
 
-    actionHeaders = _.defaultsDeep(_.toPlainObject(actionHeaders), _.toPlainObject(globalHeaders));
-
-    return _.pickBy(actionHeaders);
+    return _.pickBy(actProperty);
 };
 
-Model.prototype.getRoute = function(action) {
-    var baseRoute = action.baseRoute || this.settings.baseRoute;
-    return this.interpolate(baseRoute + action.route);
-}
+Model.prototype.getRoute = function (action, actSettings) {
+    var
+        baseRoute = actSettings.baseRoute || action.baseRoute || this.settings.baseRoute,
+        route     = actSettings.route || action.route || '';
+    return this.interpolate(baseRoute + route);
+};
 
-Model.prototype.getAction = function(name) {
+Model.prototype.getParams = function (params) {
+    if (_.isString(params)) {
+        return '?' + params;
+    } else if (_.isObject(params) && _.keys(params).length > 0) {
+        return '?' + $.param(params);
+    } else {
+        return '';
+    }
+};
+
+Model.prototype.getContentType = function (action, actSettings) {
+    return actSettings.contentType || action.contentType || this.settings.contentType;
+};
+
+Model.prototype.getAction = function (name) {
     var action = this.settings.actions[name];
 
     if (!_.isPlainObject(action)) {
@@ -259,7 +293,7 @@ Model.prototype.getAction = function(name) {
     return action;
 };
 
-Model.prototype.getDataForAction = function(name) {
+Model.prototype.getDataForAction = function (name) {
     var self = this;
     var api = self.api;
 
@@ -283,7 +317,7 @@ Model.prototype.getDataForAction = function(name) {
         action.pipeline(api.data);
 
         // Put the rest of the pipeline back in place
-        _.each(pipeline, function(step) {
+        _.each(pipeline, function (step) {
             api.data.pipeline.appendStep(step.name, step.args);
         });
     }
@@ -308,8 +342,19 @@ Model.prototype.emit = function (action, data) {
     if (this.settings.eventPrefix) {
         action = this.settings.eventPrefix + '.' + action;
     }
-    
+
     this.settings.emitter(action, data);
+};
+
+
+/**
+ * Dispatch an event
+ * @param action
+ * @param data
+ */
+Model.prototype.dispatch = function (action, data) {
+    data = data || {};
+    this.settings.dispatcher(action, data);
 };
 
 /**

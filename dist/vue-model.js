@@ -16759,7 +16759,7 @@ Model.prototype.act = function(name) {
 Model.prototype.getRoute = function(action) {
     var baseRoute = action.baseRoute || this.settings.baseRoute;
     return this.interpolate(baseRoute + action.route);
-}
+};
 
 Model.prototype.getAction = function(name) {
     var action = this.settings.actions[name];

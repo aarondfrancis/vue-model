@@ -11,11 +11,18 @@ module.exports = {
     // Prepended to each of the action routes
     baseRoute: '',
 
+    // appended as a query parameters to each the url
+    // type: string, object or function
+    params: {},
+
     // Prepended to each event that gets emitted
     eventPrefix: '',
 
     // Function by which the event gets emitted
     emitter: 'emit',
+
+    // contentType of the data being sent to the server
+    contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
 
     // HTTP Headers that get set on each action.
     // This can be a plain object or a callback
@@ -66,6 +73,7 @@ module.exports = {
         apply: false,
         validation: true,
         headers: {},
+        // contentType:
         before: function() {
             //
         },
@@ -80,15 +88,14 @@ module.exports = {
         // error response is a validation error.
         // 422 is the correct status code, so if
         // you use Laravel, no need to update this.
-        isValidationError: function(xhr) {
-            return xhr.status === 422;
+        isValidationError: function(response) {
+            return response.status === 422;
         },
-
         // The error object should have the field names
         // as the keys and an array of errors as the
         // values. Laravel does this automatically.
-        transformResponse: function(xhr) {
-            return xhr.responseJSON;
+        transformResponse: function(response) {
+            return response.data;
         }
     }
 };

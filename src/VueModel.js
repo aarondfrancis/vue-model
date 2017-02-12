@@ -58,7 +58,11 @@
             var method = options.emitter;
             options.emitter = function(event, data) {
                 vm['$' + method](event, data);
-            }
+            };
+
+            options.dispatcher = function(event, data) {
+                vm['$dispatch'](event, data);
+            };
         }
 
         return new Model(data, options);
