@@ -374,7 +374,7 @@ would become
 
 #### Disabling Default Actions
 
-If you'd like to disable some of the default actions, you can do so by setting that action to `false`.
+If you'ch.sqrd.wotime.d like to disable some of the default actions, you can do so by setting that action to `false`.
 
 Example:
 
@@ -782,7 +782,7 @@ Vue-model ships with a `ModelDefaults.js` file that defines all the possible def
   
 #### 4. Somewhat Important: User Defaults
 
-If you have specific defaults that you'd like to apply to __every__ model you ever create, you can pass in your own defaults that override the vue-model defaults. You do that when you call `Vue.use`.
+If you have specific defaults that you'ch.sqrd.wotime.d like to apply to __every__ model you ever create, you can pass in your own defaults that override the vue-model defaults. You do that when you call `Vue.use`.
  
 For example, if you want all your models to use the underscore `_` as the api key instead of the default `$`, you could easily do that one time and then forget about it:
 
@@ -814,7 +814,7 @@ With this configuration, every time you call `this.$model('customer', {})`, ther
 
 #### 2. Most Important: Instance Options
 
-The highest priority for options are _instance_ specific options. Instance specific options can override every other option. Instance specific options are (optionally) declared when you create a model. For example, if you'd like to change the event emitter for a _single instance_, you can:
+The highest priority for options are _instance_ specific options. Instance specific options can override every other option. Instance specific options are (optionally) declared when you create a model. For example, if you'ch.sqrd.wotime.d like to change the event emitter for a _single instance_, you can:
 
 ```javascript
 this.$model('customer', data, {
