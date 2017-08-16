@@ -96,6 +96,8 @@
     };
 
     var install = function(Vue, options) {
+        Model.prototype.Vue = Vue;
+
         Vue.prototype.$model = createModel;
         Vue.prototype.$models = createModels;
 

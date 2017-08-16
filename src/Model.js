@@ -30,7 +30,7 @@ var Model = function (data, settings) {
 
     // Set the API property and make it reactive
     self.api = self.buildApi();
-    Vue.set(self.data, self.settings.apiKey, self.api);
+    self.Vue.set(self.data, self.settings.apiKey, self.api);
 
     // Give back just the data
     return self.data;
@@ -102,10 +102,10 @@ Model.prototype.buildApi = function() {
 
             // Update the changed keys
             .forOwn(function(value, key){
-                Vue.set(self.data, key, value);
+                self.Vue.set(self.data, key, value);
             });
     };
-    
+
     api.errors = new ModelErrors();
 
     api.data = new DataPipeline();
@@ -136,7 +136,7 @@ Model.prototype.act = function(name) {
         self.emit(name + '.prevented', {
             action: action
         });
-        
+
         return $.when();
     }
 
@@ -308,7 +308,7 @@ Model.prototype.emit = function (action, data) {
     if (this.settings.eventPrefix) {
         action = this.settings.eventPrefix + '.' + action;
     }
-    
+
     this.settings.emitter(action, data);
 };
 
