@@ -1,325 +1,257 @@
 var _ = require('lodash');
-var DataPipeline = require('./DataPipeline');
-var ModelErrors = require('./ModelErrors');
+var axios = require('axios');
+var Vue = require('vue');
+require('promise.prototype.finally').shim();
 
-/**
- * Model Constructor
- * @param data
- * @param settings
- * @returns Object
- * @constructor
- */
-var Model = function (data, settings) {
-    var self = this;
+module.exports = class Model {
+    constructor(data, settings, classes) {
+        this.classes = classes;
+        this.settings = settings;
 
-    self.data = _.toPlainObject(data);
-    self.settings = _.toPlainObject(settings);
+        this.setData(data);
+        this.setComputed();
+        this.setMethods();
+        this.setHttp();
 
-    self.settings.excludeKeys.push(self.settings.apiKey);
-    self.settings.actions = _(self.settings.actions)
-        // reject actions that are set to false
-        .pickBy()
-
-        // Extend action with defaults and append
-        // the "name" key for later convenience
-        .forOwn(function(action, key) {
-            self.settings.actions[key] = _.defaultsDeep(action, self.settings.actionDefaults, {
-                name: key
-            });
-        });
-
-    // Set the API property and make it reactive
-    self.api = self.buildApi();
-    self.Vue.set(self.data, self.settings.apiKey, self.api);
-
-    // Give back just the data
-    return self.data;
-};
-
-/**
- * Make the public api that we attach to the model data
- * @returns Object
- */
-Model.prototype.buildApi = function() {
-    var self = this;
-    var cache;
-
-    var api = {
-        editing: false,
-        inProgress: false
-    };
-
-    _.forOwn(self.settings.actions, function(action, key){
-        (function(key){
-            // Set loading indicators for each action
-            api[key + 'InProgress'] = false;
-
-            // Expose each action in the API
-            api[key] = function () {
-                return self.act(key);
-            }
-        })(key);
-    });
-
-    /**
-     * Create a copy of the data in the model, without any
-     * of the Model extras
-     * @returns Object
-     */
-    api.copy = function() {
-        return _.omit(self.data, self.settings.excludeKeys);
-    };
-
-    /**
-     * Toggles a flag and copies the data to the cache
-     */
-    api.edit = function() {
-        api.editing = true;
-        cache = api.copy();
-    };
-
-    /**
-     * Undo any editing that was being done
-     */
-    api.cancel = function () {
-        api.apply(cache);
-        api.editing = false;
-    };
-
-    /**
-     * Update the data object using Vue.set
-     * @param newData
-     */
-    api.apply = function(newData) {
-        _(newData)
-            // Exclude our API key and any others
-            .omit(self.settings.excludeKeys)
-
-            // Skip any values that haven't changed
-            .omitBy(function(value, key) {
-                return value === self.data[key];
-            })
-
-            // Update the changed keys
-            .forOwn(function(value, key){
-                self.Vue.set(self.data, key, value);
-            });
-    };
-
-    api.errors = new ModelErrors();
-
-    api.data = new DataPipeline();
-    api.data[self.settings.apiKey] = api;
-    api.data['forAction'] = function(name) {
-        return self.getDataForAction(name)
-    };
-
-    return api;
-};
-
-/**
- * Perform an HTTP action
- * @param name
- * @returns Promise
- */
-Model.prototype.act = function(name) {
-    var self = this;
-    var api = self.api;
-    var action = self.getAction(name);
-
-    if (self.settings.preventSimultaneousActions && api.inProgress) {
-        self.emit('prevented', {
-            name: name,
-            action: action
-        });
-
-        self.emit(name + '.prevented', {
-            action: action
-        });
-
-        return $.when();
+        Vue.set(this, 'data', this.data);
     }
 
-    if (_.isFunction(action.before)) {
-        if(action.before.apply(self) === false) {
-            self.emit(name + '.canceled');
-            return $.when();
+    setBus(bus) {
+        this.bus = bus;
+    }
+
+    setData(data) {
+        this.data = _.defaultsDeep(...[
+            _.toPlainObject(data),
+
+            // Initialize all the attributes as nulls
+            _.reduce(this.settings.attributes, _.set, {}),
+
+            // Set the key that will contain our Errors class
+            _.set({}, this.settings.http.errorKey, new this.classes.errors)
+        ]);
+    }
+
+    setComputed() {
+        for (const [key, method] of Object.entries(this.settings.computed)) {
+            Object.defineProperty(this.data, key, {
+                enumerable: true,
+                get: method.bind(this.data)
+            });
         }
     }
 
-    api.inProgress = true;
-    api[name + 'InProgress'] = true;
-
-    var sent = self.getDataForAction(name);
-
-    // Immediately after we get the data, clear
-    // the pipeline. Pipeline transformations
-    // are added per action per request
-    api.data.pipeline.clear();
-
-    self.emit(name + '.before', {
-        sending: sent
-    });
-
-    var route = self.getRoute(action);
-    var headers = self.getHeaders(action);
-
-    var promise = $.ajax(route, {
-        headers: headers,
-        type: action.method,
-        data: sent,
-    });
-
-    // If we are to apply the result from the server,
-    // chain onto the promise to do so
-    if (action.apply) {
-        promise.done(function(data) {
-            api.apply(data);
-        });
+    setMethods() {
+        for (const [key, method] of Object.entries(this.settings.methods)) {
+            this.data[key] = method.bind(this.data);
+        }
     }
 
-    if (action.validation) {
-        promise
-            .always(function() {
-                api.errors.clear();
-            })
+    setHttp() {
+        // Exclude any actions set to false
+        var actions = _.pickBy(this.settings.http.actions);
 
-            .fail(function(xhr){
-                if (!self.settings.validationErrors.isValidationError(xhr)) {
-                    return;
+        var http = _.get(this.data, 'http', {});
+        var defaults = this.settings.http.actionDefaults;
+
+        for (const [key, definition] of Object.entries(actions)) {
+            http[key] = runtimeArgs => this.request(runtimeArgs, _.defaultsDeep(definition, defaults), key);
+            http[key + 'InProgress'] = false;
+        }
+
+        // One global HTTP indicator
+        Object.defineProperty(http, 'inProgress', {
+            enumerable: true,
+            get: () => {
+                return Object
+                    .keys(actions)
+                    // Turn the key into the name of the indicator
+                    .map(key => http[key + 'InProgress'])
+                    // If any are true, then it's true
+                    .reduce((carry, key) => carry || key)
+            }
+        });
+
+        this.data.http = http;
+    }
+
+    request(runtimeArgs, definition, key) {
+        var canceled = false;
+
+        this.emit([key, 'before'], {
+            cancel: () => canceled = true
+        });
+
+        if (canceled) {
+            return;
+        }
+
+        this.data.http[key + 'InProgress'] = true;
+
+        var axios = this.getAxiosInstance();
+        var config = this.getAxiosConfiguration(runtimeArgs, definition, key);
+
+        var promise = Promise
+            .all([
+                // The actual request
+                axios.request(config),
+                // Simulate a longer load time based on the http settings
+                new Promise(resolve => {
+                    setTimeout(() => resolve(), this.settings.http.takeAtLeast);
+                })
+            ])
+            .catch(error => this.requestFailed(error, definition, key))
+            // Only pass on the response value from the axios request, not our fake timeout
+            .then(results => _.head(results))
+            // Always set the progress indicator to false and send the final event
+            .finally(() => {
+                this.data.http[key + 'InProgress'] = false
+                this.emit([key, 'complete']);
+            });
+
+        if (definition.apply) {
+            // Apply the results of the response to the model
+            promise = promise.then(response => this.apply(response));
+        }
+
+        // Emit a success event _after_ the response has
+        // been applied (if applicable)
+        promise = promise.then(response => {
+            this.emit([key, 'success'], {response});
+            return response;
+        })
+
+        return promise;
+    }
+
+    getAxiosInstance() {
+        return axios.create();
+    }
+
+    getAxiosConfiguration(runtimeArgs, definition, key) {
+        var baseRoute = definition.baseRoute || this.settings.http.baseRoute || '';
+
+        if (_.startsWith(definition.route, '/')) {
+            baseRoute = '';
+        }
+
+        var config = {
+            method: definition.method,
+            url: this.interpolate(baseRoute + definition.route),
+        }
+
+        var key = (['PUT', 'POST', 'PATCH'].indexOf(config.method.toUpperCase()) == -1) ? 'params' : 'data';
+        config[key] = this.getRequestPayload(definition, runtimeArgs);
+
+        return this.settings.http.axios.call({
+            // Share some methods that might be helpful
+            interpolate: this.interpolate,
+            getRequestData: this.getRequestPayload
+        }, config, key, definition, runtimeArgs);
+    }
+
+    getRequestPayload(definition) {
+        var result = key => {
+            var value = _.get(definition, 'data.' + key);
+            return _.isFunction(value) ? value.call(this.data, definition) : value;
+        }
+
+        // Base level for every request is the value the
+        // developer put in as the model's attributes
+        var payload = this.settings.attributes;
+
+        var only = result('only');
+        if (_.isArray(only)) {
+            payload = only;
+        }
+
+        var without = result('without');
+        if (_.isArray(without)) {
+            payload = _.difference(payload, without);
+        }
+
+        var wth = result('with');
+        if (_.isArray(wth)) {
+            payload = _.union(payload, wth);
+        }
+
+        payload = payload
+            .map(value => {
+                if (!_.isString(value)) {
+                    return value;
                 }
 
-                var errors = self.settings.validationErrors.transformResponse(xhr);
-                api.errors.set(errors);
-            });
-    }
+                return {
+                    [value]: _.get(this.data, value)
+                }
+            })
+            .reduce(_.merge);
 
-    promise
-        .done(function(data) {
-            self.emit(name + '.success', {
-                sent: sent,
-                received: data
-            });
-            api.editing = false;
-        })
-
-        .fail(function(xhr) {
-            self.emit(name + '.error', {
-                sent: sent,
-                received: xhr
-            });
-        })
-
-        .always(function (data) {
-            self.emit(name + '.complete', {
-                sent: sent,
-                received: data
-            });
-
-            if(_.isFunction(action.after)) {
-                action.after.apply(self, [data]);
+        for (const [key, value] of Object.entries(payload)) {
+            if (_.isFunction(value)) {
+                payload[key] = value.call(this.data);
             }
+        }
 
-            api.inProgress = false;
-            api[name + 'InProgress'] = false;
-        });
+        var custom = _.get(definition, 'data.custom');
+        if (_.isFunction(custom)) {
+            payload = custom.call(this.data, payload, definition);
+        }
 
-    return promise;
-};
-
-Model.prototype.getHeaders = function(action) {
-    var actionHeaders = action.headers;
-    var globalHeaders = this.settings.headers;
-
-    if (_.isFunction(actionHeaders)) {
-        actionHeaders = actionHeaders.call(this, action);
+        return payload;
     }
 
-    if (_.isFunction(globalHeaders)) {
-        globalHeaders = globalHeaders.call(this, action);
+    requestFailed(error, definition, key) {
+        this.emit([key, 'error'], {error});
+
+        if (definition.validation) {
+            this.setValidationErrors(error);
+        }
+
+        return Promise.reject(error);
     }
 
-    actionHeaders = _.defaultsDeep(_.toPlainObject(actionHeaders), _.toPlainObject(globalHeaders));
+    setValidationErrors(error) {
+        var http = this.settings.http;
+        if (!http.isValidationError(error)) {
+            return;
+        }
+        var errors = http.getErrorsFromResponse(error.response);
 
-    return _.pickBy(actionHeaders);
-};
+        // errorKey can be a dot delimited path
+        Vue.setNested(this.data, http.errorKey, new this.classes.errors(errors));
+    }
 
-Model.prototype.getRoute = function(action) {
-    var baseRoute = action.baseRoute || this.settings.baseRoute;
-    return this.interpolate(baseRoute + action.route);
+    apply(response) {
+        var data = this.settings.http.getDataFromResponse(response);
+        for (const [key, value] of Object.entries(data)) {
+            Vue.set(this.data, key, value);
+        }
+
+        // Give the response back so we can keep chaining promises
+        return response;
+    }
+
+    emit(action, data) {
+        action = [this.settings.eventPrefix]
+            .concat(_.castArray(action))
+            .filter(_.identity)
+            .join('.');
+
+        data = _.defaultTo(data, {});
+        data.model = this.data;
+
+        this.bus.emit(action, data);
+    }
+
+    /**
+     * Interpolate a string with the model's data
+     * @param template
+     * @returns string
+     */
+    interpolate(template) {
+        _.templateSettings.interpolate = /{([\s\S]+?)}/g;
+        return _.template(template)(this.data);
+    }
+
 }
-
-Model.prototype.getAction = function(name) {
-    var action = this.settings.actions[name];
-
-    if (!_.isPlainObject(action)) {
-        return false;
-    }
-
-    return action;
-};
-
-Model.prototype.getDataForAction = function(name) {
-    var self = this;
-    var api = self.api;
-
-    var action = self.getAction(name);
-
-    if (!action) {
-        return {};
-    }
-
-    // Store a copy of the current pipeline, since
-    // we're going to be modifying it.
-    var pipeline = api.data.pipeline.get();
-
-    // Default to sending the entire object
-    var data = api.copy();
-
-    if (_.isFunction(action.pipeline)) {
-        api.data.pipeline.clear();
-
-        // Pass the DataPipeline into the action's pipeline step
-        action.pipeline(api.data);
-
-        // Put the rest of the pipeline back in place
-        _.each(pipeline, function(step) {
-            api.data.pipeline.appendStep(step.name, step.args);
-        });
-    }
-
-    var result = api.data.pipeline.process(data);
-
-    // Set the pipeline back to what it was
-    api.data.pipeline.set(pipeline);
-
-    // Return the pipeline-processed data
-    return result;
-};
-
-/**
- * Emit an event
- * @param action
- * @param data
- */
-Model.prototype.emit = function (action, data) {
-    data = data || {};
-
-    if (this.settings.eventPrefix) {
-        action = this.settings.eventPrefix + '.' + action;
-    }
-
-    this.settings.emitter(action, data);
-};
-
-/**
- * Parse a route
- * @param template
- * @returns string
- */
-Model.prototype.interpolate = function (template) {
-    _.templateSettings.interpolate = /{([\s\S]+?)}/g;
-    return _.template(template)(this.api.copy());
-};
-
-module.exports = Model;

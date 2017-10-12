@@ -23,6 +23,10 @@
   },
   "homepage": "https://github.com/aarondfrancis/vue-model#readme",
   "dependencies": {
-    "lodash": "^4.13.1"
+    "axios": "^0.16.2",
+    "lodash": "^4.17.4",
+    "vue": "^2.0",
+    "promise": "^8.0.1",
+    "promise.prototype.finally": "^3.0.1"
   }
 }
