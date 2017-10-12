@@ -225,7 +225,7 @@ module.exports = class Model {
     }
 
     emit(action, data) {
-        action = [this.settings.eventPrefix]
+        action = [this.settings.http.eventPrefix]
             .concat(_.castArray(action))
             .filter(_.identity)
             .join('.');

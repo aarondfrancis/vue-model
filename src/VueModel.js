@@ -13,9 +13,9 @@ class VueModel {
 
         // Set the name of the model as the Event Prefix,
         // but only if there isn't a prefix set yet
-        definition = _.defaults(definition, {
-            eventPrefix: name
-        });
+        if (! _.get(definition, 'http.eventPrefix', false)) {
+            _.set(definition, 'http.eventPrefix', name);
+        }
 
         this.registry[name] = definition;
     }

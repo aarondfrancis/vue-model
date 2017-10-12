@@ -1,11 +1,15 @@
 var _ = require('lodash');
 
 module.exports = {
-    // Names of any attributes that you want to be reactive
+    // The default model attributes. We'll initialize them all to
+    // null if there are no values for them. This is the starting
+    // point for the data that is sent to the server
     attributes: [],
 
     http: {
         baseRoute: null,
+
+        eventPrefix: null,
 
         // The _minimum_ amount of time that a successful ajax
         // request should take. If the request fails it will
@@ -68,9 +72,7 @@ module.exports = {
             index: {
                 method: 'GET',
                 route: '',
-                data: {
-                    only: []
-                }
+                data: false
             },
             store: {
                 method: 'POST',
@@ -80,9 +82,7 @@ module.exports = {
                 method: 'GET',
                 route: '{id}',
                 apply: true,
-                data: {
-                    only: []
-                }
+                data: false
             },
             update: {
                 method: 'PUT',
@@ -92,9 +92,7 @@ module.exports = {
             destroy: {
                 method: 'DELETE',
                 route: '{id}',
-                data: {
-                    only: []
-                }
+                data: false
             }
         },
     },
