@@ -1,5 +1,5 @@
 ## About
-Vue-model is a Javascript plugin for Vue.js that gives you the ability to transform your plain data into rich models with built-in and customizable HTTP actions, computer properties, and methods.
+Vue-model is a Javascript plugin for Vue.js that gives you the ability to transform your plain data into rich models with built-in and customizable HTTP actions, computed properties, and methods.
 
 This project started because I work in Vue relatively often and really wanted to be able to call `customer.save()`, have it `POST` the data to the server, show the user feedback that the action was in progress, and then apply the server's results to the model.
 
