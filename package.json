@@ -1,6 +1,6 @@
 {
   "name": "vue-model",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "A Javascript plugin for the excellent Vue.js framework that gives you the ability to transform your plain data into rich models with built-in and customizable HTTP actions.",
   "main": "src/VueModel.js",
   "scripts": {
