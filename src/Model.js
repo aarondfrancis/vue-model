@@ -2,6 +2,7 @@ var _ = require('lodash');
 var axios = require('axios');
 var Vue = require('vue');
 require('promise.prototype.finally').shim();
+require('./lib/promise-delay');
 
 module.exports = class Model {
     constructor(data, settings, classes) {
@@ -91,18 +92,9 @@ module.exports = class Model {
         var axios = this.getAxiosInstance();
         var config = this.getAxiosConfiguration(runtimeArgs, definition, key);
 
-        var promise = Promise
-            .all([
-                // The actual request
-                axios.request(config),
-                // Simulate a longer load time based on the http settings
-                new Promise(resolve => {
-                    setTimeout(() => resolve(), this.settings.http.takeAtLeast);
-                })
-            ])
+        var promise = axios.request(config)
+            .takeAtLeast(this.settings.http.takeAtLeast)
             .catch(error => this.requestFailed(error, definition, key))
-            // Only pass on the response value from the axios request, not our fake timeout
-            .then(results => _.head(results))
             // Always set the progress indicator to false and send the final event
             .finally(() => {
                 this.data.http[key + 'InProgress'] = false

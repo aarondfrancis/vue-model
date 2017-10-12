@@ -11,7 +11,7 @@ module.exports = {
         // request should take. If the request fails it will
         // return immediately, but if it's successful it won't
         // return until `takeAtLeast` milliseconds have passed
-        takeAtLeast: 100,
+        takeAtLeast: 0,
 
         // Return an axios request configuration object
         // https://github.com/axios/axios#request-config

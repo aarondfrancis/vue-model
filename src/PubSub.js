@@ -1,4 +1,4 @@
-// https://github.com/konsumer/emitonoff/pull/3
+// Waiting for a new release that includes: https://github.com/konsumer/emitonoff/pull/3
 
 var EmitOnOff = module.exports = function (thing) {
     if (!thing) thing = {};

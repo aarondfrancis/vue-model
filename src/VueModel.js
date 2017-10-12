@@ -1,5 +1,6 @@
 var _ = require('lodash');
 var Bus = require('./PubSub');
+var setNested = require('./lib/set-nested');
 
 class VueModel {
     constructor() {
@@ -155,7 +156,7 @@ class VueModel {
         }
 
         // Our augmented `Vue.set` method
-        Vue.setNested = require('./SetNested');
+        Vue.setNested = setNested;
 
         // Methods where we want `this` to be equal to VueModel,
         // but still have access to the Vue instance that called
