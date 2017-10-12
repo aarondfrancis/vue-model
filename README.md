@@ -181,7 +181,7 @@ Now we're getting to the really good stuff. The top level `http` key holds all o
 
 `actionDefaults` the defaults that are applied to every action:
 
-```json
+```javascript
 {
     // Apply the response data to the model
     apply: false,
@@ -206,7 +206,7 @@ The actions live in the `actions` key. This defines the http actions available o
 
 If you wanted to make your own, you could do so like this:
 
-```json
+```javascript
 {
     actions: {
         favorite: {
@@ -231,7 +231,7 @@ Assuming your `baseRoute` is `/customers/` and its `id` is 1, the favorite actio
 
 If you want to disable one of the default actions, just set the value to `false`
 
-```json
+```javascript
 {
     actions: {
         destroy: false
@@ -246,62 +246,61 @@ If you want to disable one of the default actions, just set the value to `false`
 By default, we'll send all the keys + values from your model's `attributes` array. This may not be ideal in many cases though, so you can modify what data gets sent for each action. (Some of these examples may be contrived, but bear with me...)
 
 - `false` means no data will be sent at all
-
-```json
-{
-    favorite: {
-        data: false
+    ```javascript
+    {
+        favorite: {
+            data: false
+        }
     }
-}
-```
+    ```
 
 - `only: []` defines the **only** keys from the `attributes` you want sent.
-```json
-{
-    setName: {
-        data: {
-            only: ['name']
-        }
-    }
-}
-```
-
-- `without: []` defines which keys you want to **exclude**
-```json
-{
-    update: {
-        data: {
-            // Maybe this a separate resource?
-            without: ['favorited']
-        }
-    }
-}
-```
-
-- `with: []` keys present on `this` but not in `attributes` that you want to include, perhaps a computed property or method
-```json
-{
-    update: {
-        data: {
-            with: ['computed_property', 'method']
-        }
-    }
-}
-```
-
-- `custom: function` after all of the above are computed, as the very last step we'll check for a `custom` function. The function receives the `payload` we're about send as well as the action's definition. **You must return** a payload, otherwise nothing will be sent.
-```javascript
-{
-    recent: {
-        data: {
-            custom: function(payload, definition) {
-                payload.lastFetched = localStorage.get('last_fetched');
-                return payload;
+    ```javascript
+    {
+        setName: {
+            data: {
+                only: ['name']
             }
         }
     }
-}
-```
+    ```
+
+- `without: []` defines which keys you want to **exclude**
+    ```javascript
+    {
+        update: {
+            data: {
+                // Maybe this a separate resource?
+                without: ['favorited']
+            }
+        }
+    }
+    ```
+
+- `with: []` keys present on `this` but not in `attributes` that you want to include, perhaps a computed property or method
+    ```javascript
+    {
+        update: {
+            data: {
+                with: ['computed_property', 'method']
+            }
+        }
+    }
+    ```
+
+- `custom: function` after all of the above are computed, as the very last step we'll check for a `custom` function. The function receives the `payload` we're about send as well as the action's definition. **You must return** a payload, otherwise nothing will be sent.
+    ```javascript
+    {
+        recent: {
+            data: {
+                custom: function(payload, definition) {
+                    payload.lastFetched = localStorage.get('last_fetched');
+                    return payload;
+                }
+            }
+        }
+    }
+    ```
 
 `only`, `with`, and `without` can be arrays, or functions that return arrays.
 
@@ -309,7 +308,7 @@ The arrays themselves can be full of strings, which are accessible from the mode
 
 For example:
 
-```json
+```javascript
 {
     favorited: {
         route: '',
@@ -326,7 +325,6 @@ For example:
 ```
 
 That action would send a `GET` to `/customers/?active=1&favorited=1`. We dropped every key via the `only:[]`, and then added some static data via `with`.
-
 
 ## Registering Models
 
@@ -562,7 +560,7 @@ Another great thing about vue-model is that you can automatically update your mo
 
 If you define your action with `apply = true`, vue-model will take the response from the server, loop through all the data and set the values.
 
-```json
+```javascript
 {
     favorite: {
         method: 'PUT',
