@@ -34,6 +34,8 @@ So that's what this plugin does.
     - [Naming](#naming)
     - [Data](#data-1)
     - [Listeners](#listeners)
+        - [Automatically Adding Listeners](#automatically-adding-listeners)
+        - [Manually Adding Listeners](#manually-adding-listeners)
 
 ## Installation
  
@@ -732,6 +734,8 @@ Each event comes with `data` payload:
 
 ### Listeners
 
+#### Automatically Adding Listeners
+
 Events aren't much good without event listeners. To add event listeners, define a `listeners` key in your `models` option. Any model registration then moves to a `register` key. E.g:
 
 ```javascript
@@ -746,6 +750,8 @@ new Vue({
     },
 });
 ```
+
+**When you add listeners automatically like this, they are bound during the Vue instance's `mounted` hook and automatically destroyed in the `beforeDestroy` lifecycle hook.**
 
 There are a couple different ways to register listeners within the `listeners` array. The first is a simple string, e.g. `customer.update.success`. This serves as **both the event and the handler**. Vue-model will try to call a method named `customer.update.success`.
 
@@ -822,5 +828,47 @@ new Vue({
     }
 });
 ```
+
+
+#### Manually Adding Listeners
+
+There may be times when you don't want to add listeners when your instance is mounted, which is when the automatic listeners are bound. If that's the case, you're in luck because you can use the `$addModelListeners` and `$removeModelListeners` methods.
+
+
+```javascript
+new Vue({
+    el: '#app',
+
+    // No automatic listeners
+    models: {
+        register: ['customer']
+    },
+
+    watch: {
+        // Some property that determines if this
+        // component is "active"
+        componentIsActive: function(val) {
+            var method = val ? '$add' : '$remove';
+
+            // Add or remove our listeners
+            this[method + 'ModelListeners']([
+                'customer.update.success'
+            ]);
+        }
+    }
+
+    methods: {
+        'customer.update.success': function() {
+            console.log('great success!')
+        }
+    }
+});
+```
+
+
+**Remember:** When you don't use automatic event listeners, you are responsible for cleaning up your event listeners.
+
+
+
 
 
