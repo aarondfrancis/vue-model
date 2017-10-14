@@ -6,6 +6,10 @@ module.exports = {
     // point for the data that is sent to the server
     attributes: [],
 
+    methods: {},
+
+    computed: {},
+
     http: {
         baseRoute: null,
 
