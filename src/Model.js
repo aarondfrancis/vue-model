@@ -26,7 +26,7 @@ module.exports = class Model {
             _.toPlainObject(data),
 
             // Initialize all the attributes as nulls
-            _.reduce(this.settings.attributes, _.set, {}),
+            this.settings.attributes.reduce((carry, key) => _.set(carry, key, null), {}),
 
             // Set the key that will contain our Errors class
             _.set({}, this.settings.http.errorKey, new this.classes.errors)
