@@ -143,6 +143,20 @@ module.exports = class Model {
     }
 
     getRequestPayload(definition) {
+        // Shorthand for no data
+        if (definition.data === false) {
+            definition.data = {
+                only: []
+            }
+        }
+
+        // Shorthand for only keys
+        if (_.isArray(definition.data)) {
+            definition.data = {
+                only: definition.data
+            }
+        }
+        
         var result = key => {
             var value = _.get(definition, 'data.' + key);
             return _.isFunction(value) ? value.call(this.data, definition) : value;
