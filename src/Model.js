@@ -156,7 +156,7 @@ module.exports = class Model {
                 only: definition.data
             }
         }
-        
+
         var result = key => {
             var value = _.get(definition, 'data.' + key);
             return _.isFunction(value) ? value.call(this.data, definition) : value;
@@ -191,7 +191,7 @@ module.exports = class Model {
                     [value]: _.get(this.data, value)
                 }
             })
-            .reduce(_.merge);
+            .reduce(_.merge, {});
 
         for (const [key, value] of Object.entries(payload)) {
             if (_.isFunction(value)) {
