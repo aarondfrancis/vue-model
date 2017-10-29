@@ -36,6 +36,7 @@ So that's what this plugin does.
     - [Listeners](#listeners)
         - [Automatically Adding Listeners](#automatically-adding-listeners)
         - [Manually Adding Listeners](#manually-adding-listeners)
+- [Testing](#testing)
 
 ## Installation
  
@@ -868,6 +869,10 @@ new Vue({
 
 **Remember:** When you don't use automatic event listeners, you are responsible for cleaning up your event listeners.
 
+## Testing
+
+- Run `npm t` or `npm test` to run all tests once.
+- Run `npm run test:watch` to watch and rerun tests.
 
 
 
