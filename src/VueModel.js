@@ -188,7 +188,7 @@ class VueModel {
         });
 
         Vue.models = {
-            register: this.register,
+            register: this.register.bind(this),
             addEventListener: this.bus.on,
             removeEventListener: this.bus.off,
         };

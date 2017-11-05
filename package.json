@@ -4,7 +4,8 @@
   "description": "A Javascript plugin for the excellent Vue.js framework that gives you the ability to transform your plain data into rich models with built-in and customizable HTTP actions.",
   "main": "src/VueModel.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "karma start --single-run",
+    "test:watch": "karma start"
   },
   "repository": {
     "type": "git",
@@ -28,5 +29,15 @@
     "vue": "^2.0",
     "promise": "^8.0.1",
     "promise.prototype.finally": "^3.0.1"
+  },
+  "devDependencies": {
+    "browserify": "^14.5.0",
+    "jasmine-core": "^2.8.0",
+    "karma": "^1.7.1",
+    "karma-browserify": "^5.1.1",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-jasmine": "^1.1.0",
+    "karma-mocha-reporter": "^2.2.5",
+    "watchify": "^3.9.0"
   }
 }
