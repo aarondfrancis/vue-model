@@ -493,7 +493,7 @@ new Vue({
     el: 'body',
 
     models: [{
-        type: 'customer'
+        type: 'customer',
         key: 'newCustomer'
     }],
 
@@ -516,7 +516,7 @@ new Vue({
     el: '#app',
 
     models: [{
-        type: 'customer'
+        type: 'customer',
         key: 'customers'
     }],
 
