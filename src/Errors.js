@@ -1,5 +1,6 @@
 var _ = require('lodash');
-var Vue = require('vue');
+var VueModule = require('vue');
+var Vue = VueModule && VueModule.__esModule ? VueModule.default : VueModule;
 
 module.exports = class Errors {
 

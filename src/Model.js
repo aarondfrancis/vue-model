@@ -1,6 +1,7 @@
 var _ = require('lodash');
 var axios = require('axios');
-var Vue = require('vue');
+var VueModule = require('vue');
+var Vue = VueModule && VueModule.__esModule ? VueModule.default : VueModule;
 require('promise.prototype.finally').shim();
 require('./lib/promise-delay');
 
